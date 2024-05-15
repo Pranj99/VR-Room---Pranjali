@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -11,45 +13,97 @@ public class UILLAMA : MonoBehaviour
     //{
 
     //}
-
-    //// Update is called once per frame
-    //void Update()
-    //{
-
-    //}
-
     public TextMeshProUGUI output;
     public string outputHolder;
+    private ConcurrentQueue<string> responseQueue = new ConcurrentQueue<string>();
+
+
+    // Update is called once per frame
+    private void Update()
+    {
+        // Process the queue and update the UI on the main thread
+        while (responseQueue.TryDequeue(out string response))
+        {
+            output.text += response;
+        }
+    }
 
 
     public void OkayButton()
     {
         output.text = "";
-        StartCoroutine(GenerateStreamingResponseButton());
+        GenerateStreamingResponseButtonAsync();
     }
 
     public void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.name == "RightHand Controller")
         {
-
-            //GenerateNonStreamingResponse();
-            StartCoroutine(GenerateStreamingResponse());
+            GenerateStreamingResponseAsync();
 
             ////Simple Object picking test
             //output.text = "this is a " + this.gameObject.name;
         }
     }
-    public void OnTriggerStay(Collider other)
-    {
-        output.text = outputHolder;     
-    }
+
     public void OnTriggerExit(Collider other)
     {
         output.text = "";
     }
 
-    IEnumerator GenerateStreamingResponse()
+
+    private async void GenerateStreamingResponseAsync()
+    {
+        string model = "TheBloke/Mistral-7B-Instruct-v0.1-GGUF/mistral-7b-instruct-v0.1.Q3_K_L.gguf";
+        string prompt = "what is a " + this.gameObject.name;
+        int maxTokens = -1;
+        bool stream = true;
+
+        await Task.Run(() =>
+        {
+            LlamaAPIVRroom.GetPromptResponse(model, prompt, maxTokens, stream, (completionResponse) =>
+            {
+                // Loop through the choices and enqueue the response text
+                foreach (var choice in completionResponse.choices)
+                {
+                    responseQueue.Enqueue(choice.text);
+                }
+            });
+        });
+    }
+
+    private async void GenerateStreamingResponseButtonAsync()
+    {
+        string model = "TheBloke/Mistral-7B-Instruct-v0.1-GGUF/mistral-7b-instruct-v0.1.Q3_K_L.gguf";
+        string prompt = "what is a tree?";
+        int maxTokens = -1;
+        bool stream = true;
+
+        await Task.Run(() =>
+        {
+            LlamaAPIVRroom.GetPromptResponse(model, prompt, maxTokens, stream, (completionResponse) =>
+            {
+                // Loop through the choices and enqueue the response text
+                foreach (var choice in completionResponse.choices)
+                {
+                    responseQueue.Enqueue(choice.text);
+                }
+            });
+        });
+    }
+
+
+    /// <summary>
+    /// /////////////////////////////////////////////////NOT REQUIRED//////////////////////////////////////////////////////////
+    /// </summary>
+    /// 
+
+    public void OnTriggerStay(Collider other)
+    {
+        //output.text = outputHolder;     
+    }
+
+    private void GenerateStreamingResponse()
     {
         string model = "TheBloke/Mistral-7B-Instruct-v0.1-GGUF/mistral-7b-instruct-v0.1.Q3_K_L.gguf";
         string prompt = "what is a " + this.gameObject.name;
@@ -65,10 +119,9 @@ public class UILLAMA : MonoBehaviour
                
             }
         });
-        yield return null;
+        
     }
-
-    IEnumerator GenerateStreamingResponseButton()
+    private void GenerateStreamingResponseButton()
     {
         string model = "TheBloke/Mistral-7B-Instruct-v0.1-GGUF/mistral-7b-instruct-v0.1.Q3_K_L.gguf";
         string prompt = "what is a tree?";
@@ -84,7 +137,7 @@ public class UILLAMA : MonoBehaviour
 
             }
         });
-        yield return null;
+       
     }
 
     private void GenerateNonStreamingResponse()
