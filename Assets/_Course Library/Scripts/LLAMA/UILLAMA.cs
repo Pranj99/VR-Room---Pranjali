@@ -14,7 +14,8 @@ public class UILLAMA : MonoBehaviour
 
     //}
     public TextMeshProUGUI output;
-    public string outputHolder;
+    private string outputHolder;
+    public TextMeshProUGUI inputQuestion;
     private ConcurrentQueue<string> responseQueue = new ConcurrentQueue<string>();
 
 
@@ -32,14 +33,16 @@ public class UILLAMA : MonoBehaviour
     public void OkayButton()
     {
         output.text = "";
-        GenerateStreamingResponseButtonAsync();
+        GenerateStreamingResponseAsyncAnythingLLMButton();
+        //GenerateStreamingResponseButtonAsync();
     }
 
     public void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.name == "RightHand Controller")
         {
-            GenerateStreamingResponseAsync();
+            //GenerateStreamingResponseAsync();
+            GenerateStreamingResponseAsyncAnythingLLM();
 
             ////Simple Object picking test
             //output.text = "this is a " + this.gameObject.name;
@@ -92,6 +95,36 @@ public class UILLAMA : MonoBehaviour
         });
     }
 
+
+    private async void GenerateStreamingResponseAsyncAnythingLLM()
+    {
+        string message = "What is a " + this.gameObject.name;
+        string mode = "query";
+
+        await Task.Run(() =>
+        {
+            LlamaAPIVRroom.GetAnythingLLMStreaming( message, mode,(completionResponse) =>
+            {
+                responseQueue.Enqueue(completionResponse.textResponse);
+            
+            });
+        });
+    }
+
+    private async void GenerateStreamingResponseAsyncAnythingLLMButton()
+    {
+        string message = inputQuestion.text;
+        string mode = "query";
+
+        await Task.Run(() =>
+        {
+            LlamaAPIVRroom.GetAnythingLLMStreaming(message, mode, (completionResponse) =>
+            {
+                responseQueue.Enqueue(completionResponse.textResponse);
+
+            });
+        });
+    }
 
     /// <summary>
     /// /////////////////////////////////////////////////NOT REQUIRED//////////////////////////////////////////////////////////

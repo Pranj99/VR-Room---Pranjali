@@ -108,4 +108,60 @@ public static class LlamaAPIVRroom
 
     }
 
+    public static void GetAnythingLLMStreaming(string message, string mode, Action<AnythingLLMPromptResponseVRroom> callback)
+    {
+        //Constructing JSON payload
+        AnythingLLMJSONPayloadVRroom requestPayload = new AnythingLLMJSONPayloadVRroom
+        {
+            message = message,  
+            mode = mode 
+        };
+
+        string apikey = "DYWMF1W-4BA4KJR-G3RQEHM-00G0KHF";
+        //Serialize the payload to JSON
+        string jsonPayload = JsonUtility.ToJson(requestPayload);
+
+        //Creat HTTP POST request 
+        HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://localhost:3001/api/v1/workspace/llamaragtest/stream-chat");
+
+        request.Method = "POST";
+        request.ContentType = "application/json";
+        request.Headers["Authorization"] = "Bearer " + apikey;
+        request.UseDefaultCredentials = true;
+
+        // Write the JSON payload to the request body
+        using (StreamWriter writer = new StreamWriter(request.GetRequestStream()))
+        {
+            writer.Write(jsonPayload);
+        }
+
+
+
+        using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+        {
+            // Read the response stream
+            using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (line.Length == 0)
+                    {
+                        continue;
+                    }
+               
+                 
+                    //Deserialize JSON to LlamaPromptResponse object type
+                    AnythingLLMPromptResponseVRroom completionResponse = JsonUtility.FromJson<AnythingLLMPromptResponseVRroom>(line.Substring("data:".Length));
+                    //Debug.Log(completionResponse.choices[0].text);
+
+                    callback.Invoke(completionResponse);
+
+                }
+
+            }
+        }
+
+    }
+
 }
