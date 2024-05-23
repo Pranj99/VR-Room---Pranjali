@@ -7,6 +7,7 @@ using System.Net.Http;
 using System;
 using static LlamaPromptResponseVRroom;
 using Unity.VisualScripting;
+using dotenv.net;
 
 public static class LlamaAPIVRroom
 {
@@ -110,6 +111,10 @@ public static class LlamaAPIVRroom
 
     public static void GetAnythingLLMStreaming(string message, string mode, Action<AnythingLLMPromptResponseVRroom> callback)
     {
+
+        //load the .env file
+        DotEnv.Config();
+
         //Constructing JSON payload
         AnythingLLMJSONPayloadVRroom requestPayload = new AnythingLLMJSONPayloadVRroom
         {
@@ -117,7 +122,6 @@ public static class LlamaAPIVRroom
             mode = mode 
         };
 
-        string apikey = "DYWMF1W-4BA4KJR-G3RQEHM-00G0KHF";
         //Serialize the payload to JSON
         string jsonPayload = JsonUtility.ToJson(requestPayload);
 
@@ -126,6 +130,10 @@ public static class LlamaAPIVRroom
 
         request.Method = "POST";
         request.ContentType = "application/json";
+
+        //get api key from .env file
+        string apikey = System.Environment.GetEnvironmentVariable("RAG_APP_API_KEY");
+
         request.Headers["Authorization"] = "Bearer " + apikey;
         request.UseDefaultCredentials = true;
 
